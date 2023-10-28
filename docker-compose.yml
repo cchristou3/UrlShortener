@@ -1,0 +1,17 @@
+version: '3.4'
+
+services:
+  api:
+    image: ${DOCKER_REGISTRY-}api
+    container_name: UrlShortener.API
+    build:
+      context: .
+      dockerfile: API\Dockerfile
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: UrlShortener.Db
+    environment:
+        SA_PASSWORD: YourStrongPassword
+        ACCEPT_EULA: Y
+    ports:
+        - "1433:1433"
