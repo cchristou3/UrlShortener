@@ -16,7 +16,11 @@ namespace API
         {
             modelBuilder.Entity<ShortenedUrl>(builder =>
             {
-                builder.Property(s => s.Code).HasMaxLength(UrlShorteningService.NumberOfCharsInShortLink);
+                builder.Property(s => s.Code)
+                .HasMaxLength(UrlShorteningService.NumberOfCharsInShortLink)
+                .IsUnicode(false)
+                .IsFixedLength();
+
                 builder.HasIndex(x => x.Code).IsUnique();
             });
         }

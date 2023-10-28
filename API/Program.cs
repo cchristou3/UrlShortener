@@ -4,6 +4,7 @@ using API.Extensions;
 using API.Models;
 using API.Services;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -20,6 +21,8 @@ builder.Services.AddDbContext<ApplicationDbContext>(o =>
 });
 
 builder.Services.AddScoped<UrlShorteningService>();
+
+builder.Services.AddMemoryCache();
 
 var app = builder.Build();
 
@@ -59,10 +62,20 @@ app.MapPost("api/shorten",
     return Results.Ok(shortenedUrl.ShortUrl);
 });
 
-app.MapGet("api/{code}", async (string code, ApplicationDbContext dbContext) =>
+app.MapGet("api/{code}", async (
+    string code, 
+    ApplicationDbContext dbContext,
+    IMemoryCache memoryCache) =>
 {
-    var shortenedUrl = await dbContext.ShortenedUrls
-    .FirstOrDefaultAsync(x => x.Code == code);
+    var shortenedUrl = await memoryCache.GetOrCreateAsync(code, async (entry) =>
+    {
+        // Should remain in the cache if no longer accessed for 90 days
+        entry.SlidingExpiration = TimeSpan.FromDays(90);
+        return await dbContext.ShortenedUrls
+        .Where(x => x.Code == code)
+        .Select(x => new { x.LongUrl })
+        .FirstOrDefaultAsync();
+    });
 
     if (shortenedUrl == null)
     {
